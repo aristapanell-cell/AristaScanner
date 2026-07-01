@@ -1,0 +1,2 @@
+cd ~/arista-scanner
+python arista.py "$@"
