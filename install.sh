@@ -29,10 +29,7 @@ else
 fi
 
 echo -e "\n${BLUE}[*] Installing dependencies...${NC}"
-pkg install -y python python-pip
-
-echo -e "\n${BLUE}[*] Installing Python packages...${NC}"
-pip install aiohttp 2>/dev/null || echo "aiohttp already installed"
+pkg install -y python
 
 echo -e "\n${BLUE}[*] Downloading project...${NC}"
 cd ~
@@ -48,5 +45,3 @@ echo -e "\n${GREEN}✅ Installation Complete!${NC}"
 echo -e "\n${CYAN}📦 Arista Scanner installed in: ~/arista-scanner${NC}"
 echo -e "\n${YELLOW}Quick Start:${NC}"
 echo -e "  ${WHITE}arista${NC}        ${BLUE}# Run scanner with menu${NC}"
-echo -e "  ${WHITE}arista --count 100${NC}    ${BLUE}# Scan 100 IPs${NC}"
-echo -e "  ${WHITE}arista --help${NC}        ${BLUE}# Show all options${NC}"
