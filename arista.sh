@@ -1,3 +1,5 @@
+#!/bin/bash
+
 clear
 
 RED='\033[1;31m'
@@ -10,6 +12,7 @@ WHITE='\033[1;37m'
 GOLD='\033[1;33m'
 NC='\033[0m'
 
+# Header
 echo -e "${BLUE}ARISTA SCANNER${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${WHITE}GitHub:${NC} ${BLUE}https://github.com/aristapanell-cell/AristaScanner${NC}"
@@ -19,6 +22,7 @@ echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${CYAN}Date:${
 echo -e "${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${CYAN}System:${NC} $(uname -o 2>/dev/null || echo "Linux") ${GOLD}═══${NC}"
 echo ""
 
+# Options Menu
 echo -e "${WHITE}OPTIONS${NC}"
 echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
 echo -e "  ${GREEN}▸ 1${NC}) ${WHITE}IPv4 SCAN${NC}  ${CYAN}•${NC} Find best IPv4 addresses"
@@ -37,9 +41,9 @@ if [ "$user_input" -eq 1 ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv4 addresses found!${NC} ${GOLD}═══${NC}"
     else
         echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                   ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                           ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
         idx=0
         echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
@@ -56,14 +60,14 @@ if [ "$user_input" -eq 1 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-37s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
+            printf "  ${WHITE}%02d${NC}  %-45s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
         done
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
 
         echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES (IP ONLY)${NC}"
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                              ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                                      ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
         idx=0
         echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
@@ -79,9 +83,9 @@ if [ "$user_input" -eq 1 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-29s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
+            printf "  ${WHITE}%02d${NC}  %-35s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
         done
-        echo -e "${BLUE}─────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
@@ -94,9 +98,9 @@ elif [ "$user_input" -eq 2 ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv6 addresses found!${NC} ${GOLD}═══${NC}"
     else
         echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                                            ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                                                                ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
         idx=0
         echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
@@ -115,14 +119,14 @@ elif [ "$user_input" -eq 2 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-59s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
+            printf "  ${WHITE}%02d${NC}  %-65s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
         done
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
 
         echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES (IP ONLY)${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                                                       ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                                                                         ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
         idx=0
         echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
@@ -141,9 +145,9 @@ elif [ "$user_input" -eq 2 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-51s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
+            printf "  ${WHITE}%02d${NC}  %-55s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
         done
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
