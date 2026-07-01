@@ -28,18 +28,21 @@ show_header() {
 
 get_ips() {
     local count=$1
+    local ips=""
     
-    # روش 1: از Cloudflare رنج‌های معروف
-    ips=$(curl -fsSL https://raw.githubusercontent.com/aristapanell-cell/AristaScanner/main/ranges.json 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -$count)
+    ips=$(curl -fsSL https://raw.githubusercontent.com/Ptechgithub/warp/main/endip/install.sh 2>/dev/null | bash 2>/dev/null | grep -oP '(\d{1,3}\.){3}\d{1,3}' | head -$count | sort -u)
     
-    # روش 2: اگر روش 1 جواب نداد، از رنج‌های پیش‌فرض استفاده کن
     if [ -z "$ips" ]; then
-        for i in $(seq 1 $count); do
-            octet1=$((RANDOM % 223 + 1))
-            octet2=$((RANDOM % 256))
-            octet3=$((RANDOM % 256))
-            octet4=$((RANDOM % 254 + 1))
-            echo "$octet1.$octet2.$octet3.$octet4"
+        ips=$(curl -fsSL https://raw.githubusercontent.com/v2rayA/v2rayA/main/ip.txt 2>/dev/null | grep -oP '(\d{1,3}\.){3}\d{1,3}' | head -$count | sort -u)
+    fi
+    
+    if [ -z "$ips" ]; then
+        ips=$(curl -fsSL https://raw.githubusercontent.com/alanhg/CloudflareSpeedTest/master/ip.txt 2>/dev/null | grep -oP '(\d{1,3}\.){3}\d{1,3}' | head -$count | sort -u)
+    fi
+    
+    if [ -z "$ips" ]; then
+        for i in $(seq 1 10); do
+            echo "104.16.$((RANDOM % 255)).$((RANDOM % 255))"
         done
         return
     fi
@@ -49,7 +52,7 @@ get_ips() {
 
 measure_latency() {
     local ip=$1
-    local latency=$(ping -c 1 -W 1 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{print $2}' | cut -d' ' -f1)
+    local latency=$(ping -c 1 -W 2 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{print $2}' | cut -d' ' -f1)
     if [ -n "$latency" ]; then
         echo "$ip|$latency"
     fi
@@ -59,11 +62,11 @@ scan() {
     local count=$1
     show_header
     
-    echo -e "\n${BLUE}[*]${NC} Generating ${count} IPs..."
+    echo -e "\n${BLUE}[*]${NC} Fetching ${count} IPs..."
     ips=$(get_ips $count)
     
     if [ -z "$ips" ]; then
-        echo -e "${RED}No IPs generated!${NC}"
+        echo -e "${RED}No IPs found!${NC}"
         echo -e "\n${DIM}Press Enter to continue...${NC}"
         read
         return
