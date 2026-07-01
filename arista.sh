@@ -40,16 +40,10 @@ if [ "$user_input" -eq 1 ]; then
     if [ -z "$ip_list" ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv4 addresses found!${NC} ${GOLD}═══${NC}"
     else
-        echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
-        
-        # نمایش عمودی ۴ ستونه
+        echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES${NC}"
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
         idx=0
-        cols=4
-        items=()
-        
-        # جمع‌آوری داده‌ها
-        while IFS= read -r ip_port; do
+        echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
             ip=$(echo "$ip_port" | cut -d: -f1)
             latency=$(ping -c 1 -W 1 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{ print $2 }' | cut -d' ' -f1)
@@ -63,29 +57,9 @@ if [ "$user_input" -eq 1 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            items+=("${WHITE}$idx${NC}  ${ip_port}  ${CYAN}$latency${NC}  $status")
-        done <<< "$(echo "$ip_list" | head -n 20)"
-        
-        # محاسبه تعداد سطرها
-        total=${#items[@]}
-        rows=$(( (total + cols - 1) / cols ))
-        
-        # نمایش جدولی
-        for ((i=0; i<rows; i++)); do
-            line=""
-            for ((j=0; j<cols; j++)); do
-                index=$((i + j*rows))
-                if [ $index -lt $total ]; then
-                    line+="${items[$index]}"
-                    # اضافه کردن فاصله برای تراز شدن
-                    if [ $j -lt $((cols-1)) ]; then
-                        line+="  │  "
-                    fi
-                fi
-            done
-            echo -e "  $line"
+            printf "  %2d.  %-20s  %-5s  %s\n" "$idx" "$ip_port" "$latency" "$status"
         done
-        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
@@ -97,16 +71,10 @@ elif [ "$user_input" -eq 2 ]; then
     if [ -z "$ip_list" ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv6 addresses found!${NC} ${GOLD}═══${NC}"
     else
-        echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
-        
-        # نمایش عمودی ۳ ستونه (IPv6 بزرگتره)
+        echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES${NC}"
+        echo -e "${BLUE}─────────────────────────────────────────────────────${NC}"
         idx=0
-        cols=3
-        items=()
-        
-        # جمع‌آوری داده‌ها
-        while IFS= read -r ip_port; do
+        echo "$ip_list" | head -n 20 | while read -r ip_port; do
             idx=$((idx+1))
             ip=$(echo "$ip_port" | cut -d'[' -f2 | cut -d']' -f1)
             if [ -z "$ip" ]; then
@@ -123,28 +91,9 @@ elif [ "$user_input" -eq 2 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            items+=("${WHITE}$idx${NC}  ${ip_port}  ${CYAN}$latency${NC}  $status")
-        done <<< "$(echo "$ip_list" | head -n 20)"
-        
-        # محاسبه تعداد سطرها
-        total=${#items[@]}
-        rows=$(( (total + cols - 1) / cols ))
-        
-        # نمایش جدولی
-        for ((i=0; i<rows; i++)); do
-            line=""
-            for ((j=0; j<cols; j++)); do
-                index=$((i + j*rows))
-                if [ $index -lt $total ]; then
-                    line+="${items[$index]}"
-                    if [ $j -lt $((cols-1)) ]; then
-                        line+="  │  "
-                    fi
-                fi
-            done
-            echo -e "  $line"
+            printf "  %2d.  %-35s  %-5s  %s\n" "$idx" "$ip_port" "$latency" "$status"
         done
-        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}─────────────────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
