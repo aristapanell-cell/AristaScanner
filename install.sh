@@ -32,7 +32,7 @@ echo -e "\n${BLUE}[*] Installing dependencies...${NC}"
 pkg install -y python python-pip openssl-tool
 
 echo -e "\n${BLUE}[*] Installing Python packages...${NC}"
-pip install aiohttp 2>/dev/null || echo "aiohttp already installed"
+pip install aiohttp
 
 echo -e "\n${BLUE}[*] Downloading project...${NC}"
 cd ~
