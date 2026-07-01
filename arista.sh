@@ -118,9 +118,24 @@ if [ "$user_input" -eq 1 ]; then
     fi
     
     rm -f "$temp_file"
-    echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
-    read
-    exec "$0"
+    
+    # منوی بعد از اسکن
+    echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}[1]${NC}  ${WHITE}Back to Main Menu${NC}"
+    echo -e "  ${RED}[0]${NC}  ${WHITE}Exit${NC}"
+    echo -e "${GOLD}═══${NC} ${WHITE}┌─[${GREEN}SELECT${WHITE}]${NC} "
+    read -r choice
+    
+    if [ "$choice" -eq 1 ]; then
+        clear
+        "$0"  # اجرای مجدد اسکریپت
+    elif [ "$choice" -eq 0 ]; then
+        echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${GREEN}Goodbye!${NC} ${GOLD}═══${NC}"
+        exit 0
+    else
+        clear
+        "$0"
+    fi
     
 elif [ "$user_input" -eq 2 ]; then
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${CYAN}Scanning IPv6 addresses...${NC} ${GOLD}═══${NC}"
@@ -215,9 +230,24 @@ elif [ "$user_input" -eq 2 ]; then
     fi
     
     rm -f "$temp_file"
-    echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
-    read
-    exec "$0"
+    
+    # منوی بعد از اسکن
+    echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}[1]${NC}  ${WHITE}Back to Main Menu${NC}"
+    echo -e "  ${RED}[0]${NC}  ${WHITE}Exit${NC}"
+    echo -e "${GOLD}═══${NC} ${WHITE}┌─[${GREEN}SELECT${WHITE}]${NC} "
+    read -r choice
+    
+    if [ "$choice" -eq 1 ]; then
+        clear
+        "$0"
+    elif [ "$choice" -eq 0 ]; then
+        echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${GREEN}Goodbye!${NC} ${GOLD}═══${NC}"
+        exit 0
+    else
+        clear
+        "$0"
+    fi
     
 elif [ "$user_input" -eq 0 ]; then
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${GREEN}Goodbye!${NC} ${GOLD}═══${NC}"
@@ -225,5 +255,6 @@ elif [ "$user_input" -eq 0 ]; then
 else
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}Invalid input. Please enter 1, 2, or 0${NC} ${GOLD}═══${NC}"
     sleep 2
-    exec "$0"
+    clear
+    "$0"
 fi
