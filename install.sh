@@ -22,26 +22,13 @@ echo "║           Arista Scanner - Termux Installer              ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-if [ -d "/data/data/com.termux" ]; then
-    echo -e "${GREEN}✓ Termux detected${NC}"
-else
-    echo -e "${YELLOW}⚠ Not running in Termux${NC}"
-fi
+echo -e "\n${BLUE}[*]${NC} Installing Arista Scanner..."
 
-echo -e "\n${BLUE}[*] Installing dependencies...${NC}"
-pkg install -y python
-
-echo -e "\n${BLUE}[*] Downloading project...${NC}"
-cd ~
-rm -rf arista-scanner
-git clone https://github.com/aristapanell-cell/AristaScanner.git arista-scanner
-
-cd ~/arista-scanner
-chmod +x arista
-
-ln -sf ~/arista-scanner/arista ~/../usr/bin/arista 2>/dev/null || echo "Symlink not created"
+curl -fsSL https://raw.githubusercontent.com/aristapanell-cell/AristaScanner/main/arista.sh -o ~/arista
+chmod +x ~/arista
+ln -sf ~/arista ~/../usr/bin/arista 2>/dev/null || echo -e "${YELLOW}Symlink not created${NC}"
 
 echo -e "\n${GREEN}✅ Installation Complete!${NC}"
-echo -e "\n${CYAN}📦 Arista Scanner installed in: ~/arista-scanner${NC}"
+echo -e "\n${CYAN}📦 Arista Scanner installed${NC}"
 echo -e "\n${YELLOW}Quick Start:${NC}"
-echo -e "  ${WHITE}arista${NC}        ${BLUE}# Run scanner{NC}"
+echo -e "  ${WHITE}arista${NC}        ${BLUE}# Run scanner${NC}"
