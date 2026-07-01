@@ -41,35 +41,15 @@ if [ "$user_input" -eq 1 ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv4 addresses found!${NC} ${GOLD}═══${NC}"
     else
         echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                           ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
+        
+        # نمایش عمودی ۴ ستونه
         idx=0
-        echo "$ip_list" | head -n 20 | while read -r ip_port; do
-            idx=$((idx+1))
-            ip=$(echo "$ip_port" | cut -d: -f1)
-            port=$(echo "$ip_port" | cut -d: -f2)
-            latency=$(ping -c 1 -W 1 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{ print $2 }' | cut -d' ' -f1)
-            if [ -z "$latency" ]; then
-                latency="N/A"
-                status="${RED}DOWN${NC}"
-            elif [ "$latency" -lt 100 ] 2>/dev/null; then
-                status="${GREEN}FAST${NC}"
-            elif [ "$latency" -lt 200 ] 2>/dev/null; then
-                status="${YELLOW}GOOD${NC}"
-            else
-                status="${RED}SLOW${NC}"
-            fi
-            printf "  ${WHITE}%02d${NC}  %-45s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
-        done
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-
-        echo -e "\n${WHITE}TOP 20 IPv4 ADDRESSES (IP ONLY)${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                                      ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        idx=0
-        echo "$ip_list" | head -n 20 | while read -r ip_port; do
+        cols=4
+        items=()
+        
+        # جمع‌آوری داده‌ها
+        while IFS= read -r ip_port; do
             idx=$((idx+1))
             ip=$(echo "$ip_port" | cut -d: -f1)
             latency=$(ping -c 1 -W 1 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{ print $2 }' | cut -d' ' -f1)
@@ -83,9 +63,29 @@ if [ "$user_input" -eq 1 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-35s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
+            items+=("${WHITE}$idx${NC}  ${ip_port}  ${CYAN}$latency${NC}  $status")
+        done <<< "$(echo "$ip_list" | head -n 20)"
+        
+        # محاسبه تعداد سطرها
+        total=${#items[@]}
+        rows=$(( (total + cols - 1) / cols ))
+        
+        # نمایش جدولی
+        for ((i=0; i<rows; i++)); do
+            line=""
+            for ((j=0; j<cols; j++)); do
+                index=$((i + j*rows))
+                if [ $index -lt $total ]; then
+                    line+="${items[$index]}"
+                    # اضافه کردن فاصله برای تراز شدن
+                    if [ $j -lt $((cols-1)) ]; then
+                        line+="  │  "
+                    fi
+                fi
+            done
+            echo -e "  $line"
         done
-        echo -e "${BLUE}──────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
@@ -98,11 +98,15 @@ elif [ "$user_input" -eq 2 ]; then
         echo -e "\n${GOLD}═══${NC} ${WHITE}[${RED}!${WHITE}]${NC} ${RED}No IPv6 addresses found!${NC} ${GOLD}═══${NC}"
     else
         echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES (IP:PORT)${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP:PORT${NC}                                                                                ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
+        
+        # نمایش عمودی ۳ ستونه (IPv6 بزرگتره)
         idx=0
-        echo "$ip_list" | head -n 20 | while read -r ip_port; do
+        cols=3
+        items=()
+        
+        # جمع‌آوری داده‌ها
+        while IFS= read -r ip_port; do
             idx=$((idx+1))
             ip=$(echo "$ip_port" | cut -d'[' -f2 | cut -d']' -f1)
             if [ -z "$ip" ]; then
@@ -119,35 +123,28 @@ elif [ "$user_input" -eq 2 ]; then
             else
                 status="${RED}SLOW${NC}"
             fi
-            printf "  ${WHITE}%02d${NC}  %-65s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip_port" "$latency" "$status"
+            items+=("${WHITE}$idx${NC}  ${ip_port}  ${CYAN}$latency${NC}  $status")
+        done <<< "$(echo "$ip_list" | head -n 20)"
+        
+        # محاسبه تعداد سطرها
+        total=${#items[@]}
+        rows=$(( (total + cols - 1) / cols ))
+        
+        # نمایش جدولی
+        for ((i=0; i<rows; i++)); do
+            line=""
+            for ((j=0; j<cols; j++)); do
+                index=$((i + j*rows))
+                if [ $index -lt $total ]; then
+                    line+="${items[$index]}"
+                    if [ $j -lt $((cols-1)) ]; then
+                        line+="  │  "
+                    fi
+                fi
+            done
+            echo -e "  $line"
         done
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-
-        echo -e "\n${WHITE}TOP 20 IPv6 ADDRESSES (IP ONLY)${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        echo -e "  ${CYAN}#${NC}  ${CYAN}IP ADDRESS${NC}                                                                         ${CYAN}LATENCY${NC}    ${CYAN}STATUS${NC}"
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
-        idx=0
-        echo "$ip_list" | head -n 20 | while read -r ip_port; do
-            idx=$((idx+1))
-            ip=$(echo "$ip_port" | cut -d'[' -f2 | cut -d']' -f1)
-            if [ -z "$ip" ]; then
-                ip=$(echo "$ip_port" | cut -d: -f1)
-            fi
-            latency=$(ping6 -c 1 -W 1 $ip 2>/dev/null | grep 'time=' | awk -F'time=' '{ print $2 }' | cut -d' ' -f1)
-            if [ -z "$latency" ]; then
-                latency="N/A"
-                status="${RED}DOWN${NC}"
-            elif [ "$latency" -lt 100 ] 2>/dev/null; then
-                status="${GREEN}FAST${NC}"
-            elif [ "$latency" -lt 200 ] 2>/dev/null; then
-                status="${YELLOW}GOOD${NC}"
-            else
-                status="${RED}SLOW${NC}"
-            fi
-            printf "  ${WHITE}%02d${NC}  %-55s  ${CYAN}%-6s${NC}  %-6s\n" "$idx" "$ip" "$latency" "$status"
-        done
-        echo -e "${BLUE}────────────────────────────────────────────────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
     fi
     echo -e "\n${GOLD}═══${NC} ${WHITE}[${CYAN}i${WHITE}]${NC} ${WHITE}Press Enter to continue...${NC} ${GOLD}═══${NC}"
     read
