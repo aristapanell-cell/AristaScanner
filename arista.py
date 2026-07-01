@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
-import json
+import subprocess
+import re
 import sys
 import time
-import os
-import signal
-import socket
-import ssl
-import random
-import ipaddress
-import heapq
-import re
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field
-import aiohttp
+from typing import List, Tuple, Optional
 
 class Colors:
     RED = '\033[91m'
@@ -28,354 +19,138 @@ class Colors:
     BOLD = '\033[1m'
     DIM = '\033[2m'
 
-@dataclass
-class TLSResult:
-    success: bool = False
-    tcp_latency: float = 0.0
-    tls_latency: float = 0.0
-    http_latency: float = 0.0
-    tls_version: Optional[str] = None
-    http_status: int = 0
-    error: Optional[str] = None
-
-@dataclass
-class ScanResult:
-    ip: str
-    port: int = 443
-    is_alive: bool = False
-    tls_supported: bool = False
-    tcp_latency: float = 0.0
-    tls_latency: float = 0.0
-    http_latency: float = 0.0
-    score: float = 0.0
-    tls_version: Optional[str] = None
-    http_status: int = 0
-    error: Optional[str] = None
-
-class TLSProbe:
+class AristaScanner:
     def __init__(self):
-        self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        self.ssl_context.check_hostname = False
-        self.ssl_context.verify_mode = ssl.CERT_NONE
-        self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-        self.ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
-        self.ssl_context.set_ciphers(
-            'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:'
-            'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305'
-        )
-        self.ssl_context.set_alpn_protocols(['h2', 'http/1.1'])
+        self.results = []
 
-    async def probe_full(self, host: str, port: int = 443, timeout: float = 1.5, http_check: bool = True) -> TLSResult:
-        result = TLSResult()
-        reader = writer = None
-        
+    def get_ips_from_source(self) -> List[str]:
         try:
-            tcp_start = time.time()
-            try:
-                reader, writer = await asyncio.wait_for(
-                    asyncio.open_connection(host, port, ssl=False),
-                    timeout=timeout
-                )
-                result.tcp_latency = (time.time() - tcp_start) * 1000
-            except Exception as e:
-                result.error = str(e)
-                return result
+            import subprocess
+            cmd = "bash <(curl -fsSL https://raw.githubusercontent.com/Ptechgithub/warp/main/endip/install.sh) 2>/dev/null"
+            result = subprocess.run(['bash', '-c', cmd], capture_output=True, text=True, timeout=30)
+            ips = re.findall(r'(\d{1,3}\.){3}\d{1,3}:\d+', result.stdout)
+            unique_ips = []
+            for ip in ips:
+                if ip not in unique_ips:
+                    unique_ips.append(ip)
+            return unique_ips[:100]
+        except:
+            return self.generate_fallback_ips()
 
-            tls_start = time.time()
-            try:
-                loop = asyncio.get_event_loop()
-                ssl_transport = await loop.create_connection(
-                    lambda: asyncio.Protocol(),
-                    host=host,
-                    port=port,
-                    ssl=self.ssl_context,
-                    server_hostname=host,
-                    sock=writer.transport.get_extra_info('socket'),
-                    ssl_handshake_timeout=3.0
-                )
-                ssl_obj = ssl_transport[0].get_extra_info('ssl_object')
-                
-                if ssl_obj:
-                    result.tls_version = ssl_obj.version()
-                
-                result.tls_latency = (time.time() - tls_start) * 1000
-            except Exception as e:
-                result.error = f"TLS error: {e}"
-                if writer:
-                    writer.close()
-                    await writer.wait_closed()
-                return result
-
-            if http_check:
-                http_start = time.time()
-                try:
-                    request = (f"HEAD / HTTP/1.1\r\nHost: {host}\r\n"
-                              f"Connection: close\r\nUser-Agent: AristaScanner/1.0\r\n\r\n")
-                    writer.write(request.encode())
-                    await writer.drain()
-                    
-                    remaining = timeout - ((time.time() - tls_start) / 1000)
-                    if remaining > 0:
-                        response = await asyncio.wait_for(
-                            reader.read(1024),
-                            timeout=remaining
-                        )
-                        
-                        if response:
-                            status_line = response.split(b'\r\n')[0] if response else b''
-                            match = re.search(rb'HTTP/(\d+\.\d+)\s+(\d+)', status_line)
-                            if match:
-                                result.http_status = int(match.group(2))
-                    
-                    result.http_latency = (time.time() - http_start) * 1000
-                    result.success = True
-                except Exception:
-                    result.success = True
-            else:
-                result.success = True
-
-        except Exception as e:
-            result.error = str(e)
-        finally:
-            if writer:
-                writer.close()
-                try:
-                    await writer.wait_closed()
-                except:
-                    pass
-
-        return result
-
-class IPGenerator:
-    def __init__(self):
-        self.used_ips = set()
-
-    def generate_ips(self, count: int = 200) -> List[str]:
+    def generate_fallback_ips(self) -> List[str]:
         ips = []
         ranges = [
-            '104.16.0.0/12',
-            '104.24.0.0/13',
-            '141.101.0.0/16',
-            '162.158.0.0/15',
-            '172.64.0.0/13',
-            '3.0.0.0/8',
-            '13.0.0.0/8',
-            '8.0.0.0/8',
-            '23.0.0.0/8'
+            '104.16.0.0/12', '104.24.0.0/13', '141.101.0.0/16',
+            '162.158.0.0/15', '172.64.0.0/13'
         ]
+        import random
+        import ipaddress
         for cidr in ranges:
             try:
                 network = ipaddress.ip_network(cidr, strict=False)
                 start_ip = int(network.network_address)
                 end_ip = int(network.broadcast_address)
-                per_range = count // len(ranges) + 1
-                for _ in range(per_range):
+                for _ in range(10):
                     ip_int = random.randint(start_ip + 1, end_ip - 1)
-                    ip = str(ipaddress.ip_address(ip_int))
-                    if ip_int not in self.used_ips:
-                        self.used_ips.add(ip_int)
-                        ips.append(ip)
+                    ip = str(ipaddress.ip_address(ip_int)) + ":443"
+                    ips.append(ip)
             except:
                 pass
-        return ips[:count]
+        return ips[:50]
 
-class AristaScanner:
-    def __init__(self, max_concurrent: int = 500, timeout: int = 1):
-        self.max_concurrent = max_concurrent
-        self.timeout = timeout
-        self.best_results = []
-        self.alive_count = 0
-        self.total_scanned = 0
-        self.tls = TLSProbe()
-        self.ip_gen = IPGenerator()
-        self.running = True
-        self.start_time = None
+    def measure_latency(self, ip_port: str) -> Tuple[str, Optional[float]]:
+        ip = ip_port.split(':')[0]
+        try:
+            result = subprocess.run(['ping', '-c', '1', '-W', '1', ip], 
+                                  capture_output=True, text=True, timeout=2)
+            match = re.search(r'time=([\d.]+)\s*ms', result.stdout)
+            if match:
+                return (ip_port, float(match.group(1)))
+        except:
+            pass
+        return (ip_port, None)
 
-    def calculate_score(self, r: ScanResult) -> float:
-        score = 0.0
-        if not r.is_alive:
-            return 0.0
-        
-        latency = r.tcp_latency + r.tls_latency + r.http_latency
-        
-        if latency > 0:
-            if latency < 50: score += 40
-            elif latency < 100: score += 30
-            elif latency < 200: score += 20
-            elif latency < 500: score += 10
-        
-        if 200 <= r.http_status < 300: score += 40
-        elif 300 <= r.http_status < 400: score += 30
-        elif 400 <= r.http_status < 500: score += 10
-        
-        if r.tls_version and 'TLSv1.3' in r.tls_version: score += 20
-        elif r.tls_version and 'TLSv1.2' in r.tls_version: score += 10
-        
-        return min(score, 100.0)
-
-    async def scan_ip(self, ip: str, port: int = 443) -> ScanResult:
-        result = ScanResult(ip=ip, port=port)
-        
-        tls_result = await self.tls.probe_full(ip, port, timeout=self.timeout)
-        
-        if tls_result.success:
-            result.is_alive = True
-            result.tls_supported = True
-            result.tcp_latency = tls_result.tcp_latency
-            result.tls_latency = tls_result.tls_latency
-            result.http_latency = tls_result.http_latency
-            result.tls_version = tls_result.tls_version
-            result.http_status = tls_result.http_status
-            
-            result.score = self.calculate_score(result)
-            self.alive_count += 1
-        else:
-            result.error = tls_result.error
-        
-        return result
-
-    def print_menu(self):
-        print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════╗")
-        print(f"║              Arista Scanner - Quick Scan              ║")
-        print(f"╚══════════════════════════════════════════════════════════╝{Colors.RESET}")
-        print(f"\n{Colors.GREEN}1.{Colors.RESET} Fast Scan {Colors.DIM}(100 IPs){Colors.RESET}")
-        print(f"{Colors.GREEN}2.{Colors.RESET} Normal Scan {Colors.DIM}(500 IPs){Colors.RESET}")
-        print(f"{Colors.GREEN}3.{Colors.RESET} Deep Scan {Colors.DIM}(2000 IPs){Colors.RESET}")
-        print(f"{Colors.GREEN}4.{Colors.RESET} Custom Count")
-        print(f"\n{Colors.RED}0.{Colors.RESET} Exit")
-        print()
-
-    async def scan(self, ips: List[str], port: int = 443, show_progress: bool = True):
-        if not ips:
-            print(f"{Colors.RED}No IPs to scan{Colors.RESET}")
-            return
-
-        self.total_scanned = 0
-        self.alive_count = 0
-        self.best_results = []
-        self.running = True
-        self.start_time = time.time()
-        
+    def scan(self, count: int = 50):
         print(f"\n{Colors.CYAN}╔═══════════════════════════════════════════════╗")
-        print(f"║      Arista Scanner - Starting Scan         ║")
+        print(f"║         Arista Scanner - IP Scanner           ║")
         print(f"╚═══════════════════════════════════════════════╝{Colors.RESET}")
-        print(f"\n{Colors.BLUE}[*]{Colors.RESET} Targets: {len(ips)} IPs")
-        print(f"{Colors.BLUE}[*]{Colors.RESET} Port: {port}")
-        print(f"{Colors.BLUE}[*]{Colors.RESET} Concurrent: {self.max_concurrent}")
-        print(f"{Colors.BLUE}[*]{Colors.RESET} Timeout: {self.timeout}s\n")
-
-        semaphore = asyncio.Semaphore(self.max_concurrent)
-
-        async def scan_one(ip: str):
-            if not self.running:
-                return
-            async with semaphore:
-                result = await self.scan_ip(ip, port)
-                self.total_scanned += 1
-                
-                if result.is_alive and result.score > 0:
-                    if len(self.best_results) < 20:
-                        heapq.heappush(self.best_results, (result.score, result))
-                    else:
-                        heapq.heapreplace(self.best_results, (result.score, result))
-                
-                if show_progress and (self.total_scanned % 50 == 0 or self.total_scanned == len(ips)):
-                    elapsed = time.time() - self.start_time
-                    rate = self.total_scanned / elapsed if elapsed > 0 else 0
-                    print(f"\r{Colors.BLUE}[{self.total_scanned}/{len(ips)}]{Colors.RESET} "
-                          f"Alive: {Colors.GREEN}{self.alive_count}{Colors.RESET} "
-                          f"Rate: {rate:.1f}/s", end="")
-
-        tasks = []
-        for ip in ips:
-            if not self.running:
-                break
-            tasks.append(asyncio.create_task(scan_one(ip)))
         
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-
-        elapsed = time.time() - self.start_time
+        print(f"\n{Colors.BLUE}[*]{Colors.RESET} Fetching IPs...")
+        ips = self.get_ips_from_source()
+        if not ips:
+            print(f"{Colors.RED}No IPs found!{Colors.RESET}")
+            return
+        
+        print(f"{Colors.BLUE}[*]{Colors.RESET} Testing {len(ips)} IPs with ping...\n")
+        
+        results = []
+        total = len(ips)
+        for i, ip in enumerate(ips, 1):
+            sys.stdout.write(f"\r{Colors.BLUE}[{i}/{total}]{Colors.RESET} Testing: {ip}     ")
+            sys.stdout.flush()
+            ip_port, latency = self.measure_latency(ip)
+            if latency is not None:
+                results.append((ip_port, latency))
+            time.sleep(0.05)
+        
         print(f"\n\n{Colors.CYAN}═══════════════════════════════════════════════")
-        print(f"Scan Summary")
+        print(f"Results")
         print(f"═══════════════════════════════════════════════{Colors.RESET}")
-        print(f"{Colors.BLUE}[*]{Colors.RESET} Total scanned: {self.total_scanned}")
-        print(f"{Colors.GREEN}[+]{Colors.RESET} Alive: {self.alive_count}")
-        if self.total_scanned > 0:
-            print(f"{Colors.YELLOW}[*]{Colors.RESET} Success rate: {(self.alive_count/self.total_scanned*100):.1f}%")
-        print(f"{Colors.BLUE}[*]{Colors.RESET} Time: {elapsed:.1f}s")
-        if elapsed > 0:
-            print(f"{Colors.BLUE}[*]{Colors.RESET} Rate: {self.total_scanned/elapsed:.1f} IPs/s\n")
         
-        if self.best_results:
-            sorted_results = sorted(self.best_results, key=lambda x: x[0], reverse=True)
-            print(f"\n{Colors.BOLD}{Colors.GREEN}══════════ TOP 20 IPS ══════════{Colors.RESET}\n")
-            for i, (score, r) in enumerate(sorted_results[:20], 1):
-                color = (
-                    Colors.GREEN if score >= 80 else
-                    Colors.YELLOW if score >= 60 else
-                    Colors.CYAN
-                )
-                print(
-                    f"{color}{i:02d}{Colors.RESET} "
-                    f"{Colors.BOLD}{r.ip}{Colors.RESET}"
-                    f":{r.port} "
-                    f"[{score:.1f}] "
-                    f"{r.tls_version or ''} "
-                    f"{r.http_status}"
-                )
+        if results:
+            results.sort(key=lambda x: x[1])
+            print(f"\n{Colors.BOLD}{Colors.GREEN}══════════ TOP 10 IPS ══════════{Colors.RESET}\n")
+            print(f"{Colors.CYAN}  IP:Port                    Latency{Colors.RESET}")
+            print(f"{Colors.DIM}  -----------------------  ----------{Colors.RESET}")
+            for i, (ip, latency) in enumerate(results[:10], 1):
+                color = Colors.GREEN if latency < 50 else Colors.YELLOW if latency < 100 else Colors.RED
+                print(f"  {color}{i:02d}. {ip:<22}  {latency:>6.1f}ms{Colors.RESET}")
             print(f"\n{Colors.GREEN}✓ Copy the IPs above{Colors.RESET}")
         else:
-            print(f"\n{Colors.YELLOW}⚠ No alive IPs found.{Colors.RESET}")
-            print(f"{Colors.DIM}Try increasing the number of IPs or running again.{Colors.RESET}")
+            print(f"\n{Colors.YELLOW}⚠ No responsive IPs found.{Colors.RESET}")
 
 async def main():
     import argparse
     
-    parser = argparse.ArgumentParser(description='Arista Scanner')
-    parser.add_argument('--count', '-n', type=int, default=100, help='Number of IPs to scan')
-    parser.add_argument('--port', '-p', type=int, default=443, help='Port to scan')
-    parser.add_argument('--concurrent', '-C', type=int, default=500, help='Max concurrent connections')
-    parser.add_argument('--timeout', '-t', type=float, default=1.5, help='Timeout in seconds')
+    parser = argparse.ArgumentParser(description='Arista Scanner - Fast IP Scanner')
+    parser.add_argument('--count', '-n', type=int, default=50, help='Number of IPs to test')
     parser.add_argument('--quiet', '-q', action='store_true', help='Quiet mode')
     
     args = parser.parse_args()
     
-    scanner = AristaScanner(max_concurrent=args.concurrent, timeout=args.timeout)
+    scanner = AristaScanner()
     
     while True:
-        scanner.print_menu()
-        choice = input(f"\n{Colors.BLUE}Enter your choice: {Colors.RESET}").strip()
+        print(f"\n{Colors.CYAN}╔═══════════════════════════════════════════════╗")
+        print(f"║          Arista Scanner - Main Menu            ║")
+        print(f"╚═══════════════════════════════════════════════╝{Colors.RESET}")
+        print(f"\n{Colors.GREEN}1.{Colors.RESET} Scan IPv4 IPs {Colors.DIM}(Recommended){Colors.RESET}")
+        print(f"{Colors.GREEN}2.{Colors.RESET} Scan IPv6 IPs")
+        print(f"{Colors.GREEN}3.{Colors.RESET} Custom Count")
+        print(f"\n{Colors.RED}0.{Colors.RESET} Exit")
+        print()
+        
+        choice = input(f"{Colors.BLUE}Enter your choice: {Colors.RESET}").strip()
         
         if choice == "0":
             print(f"\n{Colors.GREEN}Goodbye!{Colors.RESET}")
             break
-        
-        if choice == "1":
-            ips = scanner.ip_gen.generate_ips(100)
+        elif choice == "1":
+            scanner.scan(args.count)
         elif choice == "2":
-            ips = scanner.ip_gen.generate_ips(500)
+            print(f"\n{Colors.YELLOW}IPv6 scan coming soon...{Colors.RESET}")
         elif choice == "3":
-            ips = scanner.ip_gen.generate_ips(2000)
-        elif choice == "4":
             count_input = input(f"{Colors.BLUE}Enter number of IPs to scan: {Colors.RESET}")
             try:
                 count = int(count_input)
-                if count <= 0:
+                if count > 0:
+                    scanner.scan(count)
+                else:
                     print(f"{Colors.RED}Count must be positive!{Colors.RESET}")
-                    continue
-                ips = scanner.ip_gen.generate_ips(count)
             except:
                 print(f"{Colors.RED}Invalid number!{Colors.RESET}")
-                continue
         else:
             print(f"{Colors.RED}Invalid choice!{Colors.RESET}")
-            continue
-        
-        if ips:
-            await scanner.scan(ips, port=args.port, show_progress=not args.quiet)
-        else:
-            print(f"{Colors.RED}No IPs generated!{Colors.RESET}")
 
 if __name__ == '__main__':
     try:
