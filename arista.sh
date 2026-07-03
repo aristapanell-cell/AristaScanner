@@ -25,6 +25,7 @@ main_menu() {
     echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
     echo -e "  ${GREEN}▸ 1${NC}) ${WHITE}IPv4 SCAN${NC}  ${CYAN}•${NC} Find best IPv4 addresses"
     echo -e "  ${GREEN}▸ 2${NC}) ${WHITE}IPv6 SCAN${NC}  ${CYAN}•${NC} Find best IPv6 addresses"
+    echo -e "  ${GREEN}▸ 3${NC}) ${WHITE}TEST IP${NC}    ${CYAN}•${NC} Test custom IP"
     echo -e "  ${RED}▸ 0${NC}) ${WHITE}EXIT${NC}       ${CYAN}•${NC} Close scanner"
     echo -e "${BLUE}────────────────────────────────────────────────────────────${NC}"
     echo -en "\n${WHITE}┌─[${GREEN}SELECT${WHITE}]${NC} "
@@ -32,9 +33,63 @@ main_menu() {
     case $user_input in
         1) ipv4_scan ;;
         2) ipv6_scan ;;
+        3) test_ip ;;
         0) echo -e "\n${GOLD}═══${NC} ${WHITE}[${GREEN}+${WHITE}]${NC} ${GREEN}Goodbye!${NC} ${GOLD}═══${NC}"; exit 0 ;;
         *) echo -e "\n${RED}Invalid input!${NC}"; sleep 1; main_menu ;;
     esac
+}
+
+test_ip() {
+    clear
+    echo -e "${BLUE}CUSTOM IP TEST${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -en "\n${WHITE}Enter IP or IP:PORT:${NC} "
+    read -r target
+    [ -z "$target" ] && main_menu
+    if [[ "$target" == \[*\]* ]]; then
+        ip=$(echo "$target" | sed -E 's/^\[([^\]]+)\].*/\1/')
+        is_ipv6=1
+    elif [[ "$target" =~ : && ! "$target" =~ \. ]]; then
+        ip=$(echo "$target" | cut -d: -f1)
+        is_ipv6=1
+    else
+        ip=$(echo "$target" | cut -d: -f1)
+        is_ipv6=0
+    fi
+    echo ""
+    echo -e "${CYAN}Testing...${NC}"
+    if [ "$is_ipv6" -eq 1 ]; then
+        latency=$(ping6 -c 1 -W 1 "$ip" 2>/dev/null | grep 'time=' | sed 's/.*time=//' | cut -d' ' -f1)
+    else
+        latency=$(ping -c 1 -W 1 "$ip" 2>/dev/null | grep 'time=' | sed 's/.*time=//' | cut -d' ' -f1)
+    fi
+    if [ -z "$latency" ]; then
+        latency="N/A"
+        status="${RED}DOWN${NC}"
+    else
+        if [ "$(echo "$latency < 100" | bc 2>/dev/null)" = "1" ]; then
+            status="${GREEN}FAST${NC}"
+        elif [ "$(echo "$latency < 200" | bc 2>/dev/null)" = "1" ]; then
+            status="${YELLOW}GOOD${NC}"
+        else
+            status="${RED}SLOW${NC}"
+        fi
+    fi
+    clear
+    echo -e "${RED}╔════════════════════════════════════════════════════════════╗${NC}"
+    printf "${RED}║${NC} %-54s ${RED}║${NC}\n" "Target : $target"
+    printf "${RED}║${NC} %-54s ${RED}║${NC}\n" "Latency : $latency ms"
+    printf "${RED}║${NC} %-54b ${RED}║${NC}\n" "Status : $status"
+    echo -e "${RED}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e " ${GREEN}[1]${NC} Back to Main Menu"
+    echo -e " ${RED}[0]${NC} Exit"
+    echo -en "\n${WHITE}Select:${NC} "
+    read -r choice
+    if [ "$choice" = "0" ]; then
+        exit 0
+    fi
+    main_menu
 }
 
 ipv4_scan() {
